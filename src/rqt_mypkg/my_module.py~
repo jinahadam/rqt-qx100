@@ -1,7 +1,8 @@
 import os
 import rospy
 import rospkg
-
+from std_msgs.msg import String
+import time
 
 import sys, json, time
 import httplib
@@ -9,6 +10,7 @@ import threading
 import base64, hashlib
 import functools
 import urllib
+#import pyros
 
 from urlparse import urlparse
 from PyQt4.QtCore import *
@@ -23,8 +25,20 @@ lock = threading.Lock()
 #app = QApplication(sys.argv)
 image = QImage()
      
+#def talker():
+pub = rospy.Publisher('capture', String, queue_size=10)
+    rospy.init_node('talker', anonymous=True)
+
+#if __name__ == '__main__':
+#    try:
+#       talker()
+#    except rospy.ROSInterruptException:
+#        pass
 
 class MyPlugin(Plugin):
+
+
+
 
     def __init__(self, context):  
         super(MyPlugin, self).__init__(context)
@@ -35,6 +49,8 @@ class MyPlugin(Plugin):
         resp = postRequest(conn, "camera", {"method": "startLiveview", "params": [], "version": "1.0"})
         liveview = threading.Thread(target = liveviewFromUrl, args = (resp["result"][0],))
         liveview.start()
+       
+
         
 
     def shutdown_plugin(self):
@@ -271,6 +287,9 @@ class Form(QDialog):
         self.label.setText("Capturing Image")
         conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
+        capture_time = time.strftime("%c")
+        print(rospy.get_time())
+        pub.publish(capture_time)
         downloadImage(resp["result"][0][0])
 
     def zoomIn(self):
@@ -293,19 +312,15 @@ class Form(QDialog):
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
 
 
-
     def handleFChange(self, text):
-        print('handleChanged: %s' % text)
         conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setFNumber", "params": [text], "version": "1.0"})
 
     def handleISOChange(self, text):
-        print('handleChanged: %s' % text)
         conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setIsoSpeedRate", "params": [text], "version": "1.0"})
 
     def handleShutterChange(self, text):
-        print('handleChanged: %s' % text)
         conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setShutterSpeed", "params": [text], "version": "1.0"})
 
@@ -313,3 +328,4 @@ class Form(QDialog):
         for i in range(combo.count(),-1,-1):
                 print(i)
                 combo.removeItem(i)
+
